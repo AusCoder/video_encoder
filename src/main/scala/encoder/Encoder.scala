@@ -12,19 +12,19 @@ import org.jcodec.containers.mp4.muxer.{FramesMP4MuxerTrack, MP4Muxer}
 import org.jcodec.scale.{ColorUtil, Transform}
 import org.jcodec.scale.AWTUtil
 
-import scalaz.{-\/, \/, \/-}
+import scalaz.{-\/, \/, \/-, _}
 import scalaz.concurrent.Task
 import scala.concurrent.duration._
 import scalaz.syntax.traverse._
-
-import scalaz._, Scalaz._
+import Scalaz._
+import std.list._
 
 /**
   * Created by doctor on 12/16/16.
   */
 class Encoder(out: File) extends SequenceEncoder {
   var dimensions = Dimensions(Width(-1), Height(-1))
-  val timescale = 25
+  val timescale = 1
 
   val ch: FileChannelWrapper = NIOUtils.writableFileChannel(out)
   val muxer: MP4Muxer = new MP4Muxer(ch, Brand.MP4)
@@ -65,28 +65,6 @@ class Encoder(out: File) extends SequenceEncoder {
       )
       frameNo += 1
     }
-//    outTrack.addFrame(new MP4Packet(result,
-//      frameNo,
-//      timescale,
-//      1,
-//      frameNo,
-//      true,
-//      null,
-//      frameNo,
-//      0)
-//    )
-
-//    outTrack.addFrame(new MP4Packet(result,
-//      frameNo,
-//      1,
-//      1,
-//      frameNo,
-//      true,
-//      null,
-//      frameNo,
-//      0)
-//    )
-//    frameNo += 1
   }
 
   def encodeImage(img: BufferedImage): Task[SequenceEncoderError \/ ByteBuffer] = Task {
@@ -121,76 +99,47 @@ class Encoder(out: File) extends SequenceEncoder {
     val h = frames.head.getHeight()
     dimensions = Dimensions(Width(w), Height(h))
 
-    val x = frames
+    val x: List[\/[SequenceEncoderError, BufferedImage]] = frames
       .map(checkDimensions(_))
-//      .toList
-//      .sequenceU
+      .toList
 
-    for (imgDis <- x) yield imgDis match {
-      case -\/(err) => Unit
-      case \/-(img) =>
-        val toEncode = Picture.create(img.getWidth(), img.getHeight(), encoder.getSupportedColorSpaces().head)
-        transform.transform(AWTUtil.fromBufferedImage(img), toEncode)
-        outBuffer.clear()
-        val result: ByteBuffer = encoder.encodeFrame(toEncode, outBuffer) // how to get a buffer big enough? or do we forget about the buffer?
-
-        spsList.clear()
-        ppsList.clear()
-        H264Utils.wipePS(result, spsList, ppsList)
-        H264Utils.encodeMOVPacket(result)
-
-        // this writes lots of frames per second...
-        for (i <- 1 to timescale) {
-          outTrack.addFrame(new MP4Packet(
-            result,
-            frameNo,
-            timescale,
-            1,
-            frameNo,
-            true,
-            null,
-            frameNo,
-            0)
-          )
-          frameNo += 1
-        }
-    }
-    -\/(InvalidFrameDimensions(dimensions))
+    val y = x.foldRight(\/-(List(): List[BufferedImage]): \/[SequenceEncoderError, List[BufferedImage]])( (dis, disL) =>
+      dis.flatMap( bi => disL.map(listBi => bi :: listBi))
+    ) // why does x.sequenceU not work ???
 
 
-//    x match {
-//      case -\/(err) => -\/(err)
-//      case \/-(imgs) =>
-//        imgs.foreach {
-//          img =>
-//            val toEncode = Picture.create(img.getWidth(), img.getHeight(), encoder.getSupportedColorSpaces().head)
-//            transform.transform(AWTUtil.fromBufferedImage(img), toEncode)
+    y match {
+      case -\/(err) => -\/(err)
+      case \/-(imgs) =>
+        imgs.foreach {
+          img =>
+            val toEncode = Picture.create(img.getWidth(), img.getHeight(), encoder.getSupportedColorSpaces().head)
+            transform.transform(AWTUtil.fromBufferedImage(img), toEncode)
 //            outBuffer.clear()
-//            val result: ByteBuffer = encoder.encodeFrame(toEncode, outBuffer) // how to get a buffer big enough? or do we forget about the buffer?
-//
-//            spsList.clear()
-//            ppsList.clear()
-//            H264Utils.wipePS(result, spsList, ppsList)
-//            H264Utils.encodeMOVPacket(result)
-//
-//            // this writes lots of frames per second...
-//            for (i <- 1 to timescale) {
-//              outTrack.addFrame(new MP4Packet(
-//                result,
-//                frameNo,
-//                timescale,
-//                1,
-//                frameNo,
-//                true,
-//                null,
-//                frameNo,
-//                0)
-//              )
-//              frameNo += 1
-//            }
-//      }
-//      \/-(Mp4Video(outBuffer, dimensions, 211 seconds))
-//    }
+            val result: ByteBuffer = encoder.encodeFrame(toEncode, outBuffer) // how to get a buffer big enough? or do we forget about the buffer?
 
+            spsList.clear()
+            ppsList.clear()
+            H264Utils.wipePS(result, spsList, ppsList)
+            H264Utils.encodeMOVPacket(result)
+
+            // this writes lots of frames per second...
+            for (i <- 1 to timescale) {
+              outTrack.addFrame(new MP4Packet(
+                result,
+                frameNo,
+                timescale,
+                1,
+                frameNo,
+                true,
+                null,
+                frameNo,
+                0)
+              )
+              frameNo += 1
+            }
+        }
+        \/-(Mp4Video(outBuffer, dimensions, imgs.length seconds))
+    }
   }
 }
