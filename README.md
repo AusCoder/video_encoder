@@ -9,7 +9,7 @@ This is an sbt project which uses sbt-assembly to package a jar containing all c
     $ sbt assembly
 ```
 
-It can then be run with (note that increasing memory maybe required to store the mp4 video)
+It can then be run with scala-2.12: (note that increasing memory maybe required to store the mp4 video)
 ```
     $ scala -J-Xmx2G target/scala-2.12/video_encoder-assembly-1.0.jar ./path/to/images/
 ```
