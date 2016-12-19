@@ -19,7 +19,7 @@ object Main extends App {
         imgs <- sequence(imgNames.map(readImage(_)).toList)
       } yield imgs
 
-      bufImgs.flatMap(imgs => Encoder.encodeImages("test.mp4",imgs)) match {
+      bufImgs.flatMap(imgs => Encoder.encodeImages("output.mp4",imgs)) match {
         case -\/(err) =>
           println("an error occured: ")
           err match {

@@ -4,7 +4,6 @@ import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
-import Helpers._
 import models._
 
 import scalaz.-\/
@@ -24,13 +23,13 @@ class EncoderSpec extends BaseEncoderSpec {
     })
   }
 
-//  "validateImage" should "return left for bad input image" in {
-//    val img: BufferedImage = ImageIO.read(new File("build.sbt"))
-//    assert (encoder.validateImage(img) match {
-//      case -\/(BadlyFormedImage(_)) => true
-//      case _ => false
-//    })
-//  }
+  "validateImage" should "return left for bad input image" in {
+    val img: BufferedImage = ImageIO.read(new File("build.sbt"))
+    assert (encoder.validateImage(img) match {
+      case -\/(BadlyFormedImage(_)) => true
+      case _ => false
+    })
+  }
 
   "encode" should "encode sample images" in {
     val img1 = new BufferedImage(defaultTestDimensions.width.value, defaultTestDimensions.height.value, BufferedImage.TYPE_INT_RGB)
