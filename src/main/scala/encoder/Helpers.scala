@@ -1,39 +1,52 @@
 package encoder
 
 import java.awt.image.BufferedImage
-import java.io.File
-
-import scala.concurrent.duration.Duration
-import java.nio.ByteBuffer
+import java.io.{File, IOException}
+import javax.imageio.ImageIO
 
 import scalaz.concurrent.Task
 import scalaz.{-\/, \/, \/-}
+import models._
 
-
-/**
-  * Created by doctor on 12/16/16.
-  */
-
-case class Width(value: Int)
-case class Height(value: Int)
-case class Dimensions(width: Width, height: Height)
-
-sealed trait Video
-case class Mp4Video(content: ByteBuffer, dimensions: Dimensions, length: Duration) extends Video
-
-sealed trait SequenceEncoderError
-case class InvalidFrameDimensions(dimensions: Dimensions) extends SequenceEncoderError
-//case class BadlyFormedImage(data: Array[Byte]) extends SequenceEncoderError
-case class BadlyFormedImage(data: File) extends SequenceEncoderError
-case class GeneralFailure(error: Throwable) extends SequenceEncoderError
-
-
-trait SequenceEncoder {
-  def encode(frames: Seq[BufferedImage]): Task[SequenceEncoderError \/ Video]
-}
 
 object Helpers {
+  /** inverts a list of disjunctions to a disjunction of list
+    *
+    * this is equivalent to scalaz's sequenceU method
+    * @param xs
+    * @return disjunction of error and list
+    */
   def sequence[A](xs: List[\/[SequenceEncoderError, A]]) = xs.foldRight(\/-(List(): List[A]): \/[SequenceEncoderError, List[A]])( (dis, disL) =>
     dis.flatMap( bi => disL.map(listBi => bi :: listBi))
   )
+
+  /** Lists contents of a directory
+    *
+    * @param dir
+    * @return disjunction of error and file list
+    */
+  def listDir(dir: String): \/[SequenceEncoderError, Seq[File]] = {
+    val d = new File(dir)
+    if (d.exists && d.isDirectory) {
+      \/-(d.listFiles.filter(_.isFile).toSeq.sorted)
+    }
+    else {
+      -\/(BadImageDirectory(dir))
+    }
+  }
+
+  /** reads an image file into a buffered image
+    *
+    * @param file
+    * @return disjunction of error and buffered image
+    */
+  def readImage(file: File): SequenceEncoderError \/ BufferedImage = {
+    try {
+      \/-(ImageIO.read(file))
+    }
+    catch {
+      case e: IOException =>
+        -\/(GeneralFailure(e))
+    }
+  }
 }
