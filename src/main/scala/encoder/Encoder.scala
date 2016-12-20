@@ -91,7 +91,7 @@ class Encoder(out: File, dimensions: Dimensions, bufferSize: Int = 800*1300*6*13
       .map(validateImage(_))
       .toList
 
-    sequence[BufferedImage](validatedImages) match { // use flatmap
+    sequence[BufferedImage](validatedImages) match { // use flatmap...
       case -\/(err) => -\/(err)
       case \/-(imgs) =>
         imgs.foreach {

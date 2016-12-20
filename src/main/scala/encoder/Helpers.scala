@@ -4,7 +4,6 @@ import java.awt.image.BufferedImage
 import java.io.{File, IOException}
 import javax.imageio.ImageIO
 
-import scalaz.concurrent.Task
 import scalaz.{-\/, \/, \/-}
 import models._
 

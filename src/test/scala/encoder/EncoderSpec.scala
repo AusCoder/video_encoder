@@ -36,6 +36,4 @@ class EncoderSpec extends BaseEncoderSpec {
     val img2 = new BufferedImage(defaultTestDimensions.width.value, defaultTestDimensions.height.value, BufferedImage.TYPE_INT_RGB)
     assert(encoder.encode(Seq(img1, img2)).unsafePerformSync.isRight)
   }
-
-
 }

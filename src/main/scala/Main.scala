@@ -14,6 +14,7 @@ object Main extends App {
     case None =>
       println("please specify the directory containing the images")
     case Some(dirName) =>
+
       val bufImgs = for {
         imgNames <- listDir(dirName)
         imgs <- sequence(imgNames.map(readImage(_)).toList)
